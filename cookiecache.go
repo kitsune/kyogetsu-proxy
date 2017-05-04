@@ -1,10 +1,25 @@
+//Copyright Dylan Enloe 2017
+
 package kyogetsu
 
-type CookieCache interface {
-  SetCookie(id string, key string, val string) error
-  SetCookies(id string, val map[string]string) error
+import (
+  "net/http"
+)
 
-  GetCookie(id string, key string) (string, error)
-  GetCookies(id string) (map[string]string, error)
+//A CookiesCache represents an interface to a data
+//store for the purpose of storing and retrieving
+//http.Cookie data
+type CookieCache interface {
+  //Stores a single http.Cookie.
+  //id is the unique identifier for the session
+  SetCookie(id string, c *http.Cookie) error
+  //Stores an array of http.Cookies
+  //id is the unique identifier for the session
+  SetCookies(id string, c []*http.Cookie) error
+
+  //Get cookie data for the given key and user session 
+  GetCookie(id string, key string) (*http.Cookie, error)
+  //Gets all cookie data for a given user session
+  GetCookies(id string) ([]*http.Cookie, error)
 }
 

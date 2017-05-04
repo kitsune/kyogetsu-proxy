@@ -1,37 +1,68 @@
+//Copyright Dylan Enloe 2017
+
 package kyogetsu
 
 import (
   "github.com/mediocregopher/radix.v2/pool"
   "fmt"
+  "net/http"
 )
 
+//A CookieCache that uses Redis as it's backend store.
+//It stores the cookie data in a Redis HashMap under
+//the key <namespace>.<id>
 type RedisCache struct {
   pool *pool.Pool
   namespace string
 }
 
-func (r RedisCache) SetCookie(id string, key string, val string) error {
+//SetCookie extracts the name and value from an
+//*http.Cookie and stores in the id's hash map
+func (r RedisCache) SetCookie(id string, c *http.Cookie) error {
   k := r.namespacedId(id)
-  return r.pool.Cmd("HSET", k, key, val).Err
+  return r.pool.Cmd("HSET", k, c.Name, c.Value).Err
 }
 
-func (r RedisCache) SetCookies(id string, val map[string]string) error {
+//SetCookies stores the name and value data for
+//an array of *http.Cookies in the id's hash map
+func (r RedisCache) SetCookies(id string, c []*http.Cookie) error {
   k := r.namespacedId(id)
-  fmt.Println(val)
-  s, err := r.pool.Cmd("HMSET", k, val).Str()
+  m := map[string]string{}
+  for _, v := range c {
+    fmt.Println(v.Name)
+    fmt.Println(v.Value)
+    m[v.Name] = v.Value
+  }
+  fmt.Println(m)
+  s, err := r.pool.Cmd("HMSET", k, m).Str()
   fmt.Println(s)
   return err
   //return r.pool.Cmd("HMSET", k, val).Err
 }
 
-func (r RedisCache) GetCookie(id string, key string) (string, error) {
+//GetCookie gets a cookie stored in Redis
+func (r RedisCache) GetCookie(id string, key string) (*http.Cookie, error) {
   k := r.namespacedId(id)
-  return r.pool.Cmd("HGET", k, key).Str()
+  v, err := r.pool.Cmd("HGET", k, key).Str()
+  if err != nil {
+    return nil, err
+  }
+  return &http.Cookie{Name: k, Value: v}, nil
 }
 
-func (r RedisCache) GetCookies(id string) (map[string]string, error) {
+//GetCookies gets all cookies stored in Redis for
+//a given Id
+func (r RedisCache) GetCookies(id string) ([]*http.Cookie, error) {
   k := r.namespacedId(id)
-  return r.pool.Cmd("HGETALL", k).Map()
+  m, err := r.pool.Cmd("HGETALL", k).Map()
+  if err != nil {
+    return nil, err
+  }
+  c := make([]*http.Cookie, 0, len(m))
+  for k, v := range m {
+    c = append(c, &http.Cookie{Name: k, Value: v})
+  }
+  return c, nil
 }
 
 func (r RedisCache) namespacedId(id string) string {
