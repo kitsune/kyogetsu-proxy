@@ -29,10 +29,9 @@ func (r RedisCache) SetCookies(id string, c []*http.Cookie) error {
   k := r.namespacedId(id)
   m := map[string]string{}
   for _, v := range c {
-    fmt.Println(v.Name)
-    fmt.Println(v.Value)
     m[v.Name] = v.Value
   }
+  fmt.Println("Set Cookies:")
   fmt.Println(m)
   s, err := r.pool.Cmd("HMSET", k, m).Str()
   fmt.Println(s)
@@ -63,6 +62,17 @@ func (r RedisCache) GetCookies(id string) ([]*http.Cookie, error) {
     c = append(c, &http.Cookie{Name: k, Value: v})
   }
   return c, nil
+}
+
+//ChangeCookiesId uses the rename command to change the
+//id that the cookie data is returned under
+func (r RedisCache) ChangeCookiesId(old_id string, new_id string) error {
+  old_id = r.namespacedId(old_id)
+  new_id = r.namespacedId(new_id)
+
+  s, err := r.pool.Cmd("RENAME", old_id, new_id).Str()
+  fmt.Println(s)
+  return err
 }
 
 func (r RedisCache) namespacedId(id string) string {

@@ -21,5 +21,8 @@ type CookieCache interface {
   GetCookie(id string, key string) (*http.Cookie, error)
   //Gets all cookie data for a given user session
   GetCookies(id string) ([]*http.Cookie, error)
+
+  //Change the Id that the cookie data is stored under
+  ChangeCookiesId(old_id string, new_id string) error
 }
 
