@@ -1,7 +1,8 @@
+//Copyright Dylan Enloe 2017
+
 package kyogetsu
 
 import (
-  "fmt"
   "net/http"
   "io/ioutil"
 )
@@ -23,6 +24,8 @@ type Message struct {
   StagingReponse string
 }
 
+//NewRequestInfo generates the proper RequestInfo for
+//the given http.Request
 func NewRequestInfo(r *http.Request) RequestInfo {
   b, err := ioutil.ReadAll(r.Body);
   if  err != nil {
@@ -31,16 +34,7 @@ func NewRequestInfo(r *http.Request) RequestInfo {
   return RequestInfo{Method: r.Method, Body: string(b), URL: r.URL.String()}
 }
 
+//NewMessage creates a new message from the given data
 func NewMessage(p string, s string, r *http.Request) *Message {
   return &Message{Request: NewRequestInfo(r), ProductionReponse: p, StagingReponse: s}
-}
-
-type DummySender struct {
-  // Doesn't need anything
-}
-
-func (d DummySender) SendMessage(m *Message) {
-  fmt.Println("Returned data:")	
-  fmt.Println(m.ProductionReponse)
-  fmt.Println(m.StagingReponse)
 }
