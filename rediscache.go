@@ -4,7 +4,6 @@ package kyogetsu
 
 import (
   "github.com/mediocregopher/radix.v2/pool"
-  "fmt"
   "net/http"
 )
 
@@ -26,17 +25,18 @@ func (r RedisCache) SetCookie(id string, c *http.Cookie) error {
 //SetCookies stores the name and value data for
 //an array of *http.Cookies in the id's hash map
 func (r RedisCache) SetCookies(id string, c []*http.Cookie) error {
+  //Incase there are no cookies to add, just return
+  if len(c) == 0 {
+    return nil
+  }
+  
   k := r.namespacedId(id)
   m := map[string]string{}
   for _, v := range c {
     m[v.Name] = v.Value
   }
-  fmt.Println("Set Cookies:")
-  fmt.Println(m)
-  s, err := r.pool.Cmd("HMSET", k, m).Str()
-  fmt.Println(s)
-  return err
-  //return r.pool.Cmd("HMSET", k, val).Err
+
+  return r.pool.Cmd("HMSET", k, m).Err
 }
 
 //GetCookie gets a cookie stored in Redis
@@ -46,7 +46,7 @@ func (r RedisCache) GetCookie(id string, key string) (*http.Cookie, error) {
   if err != nil {
     return nil, err
   }
-  return &http.Cookie{Name: k, Value: v}, nil
+  return &http.Cookie{Name: key, Value: v}, nil
 }
 
 //GetCookies gets all cookies stored in Redis for
@@ -70,16 +70,12 @@ func (r RedisCache) ChangeCookiesId(old_id string, new_id string) error {
   old_id = r.namespacedId(old_id)
   new_id = r.namespacedId(new_id)
 
-  s, err := r.pool.Cmd("RENAME", old_id, new_id).Str()
-  fmt.Println(s)
-  return err
+  return r.pool.Cmd("RENAME", old_id, new_id).Err
 }
 
 func (r RedisCache) namespacedId(id string) string {
   k := r.namespace + "." + id
-  fmt.Println(k)
   return k
-  //return r.namespace + "." + id
 }
 
 // Creates a new RedisCache with only a single connection.
