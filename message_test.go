@@ -1,20 +1,19 @@
 //Copyright Dylan Enloe 2017
 
-package kyogetsu_test
+package kyogetsu
 
 import (
   "errors"
-  "kyogetsu"
   "net/http"
   "strings"
   "testing"
   )
 
-type FailReader struct {
+type failReader struct {
   //doesn't need any data
 }
 
-func (r FailReader) Read(b []byte) (n int, err error) {
+func (r failReader) Read(b []byte) (n int, err error) {
   return 0, errors.New("Read Error")
 }
 
@@ -30,7 +29,7 @@ type message struct {
   r requestInfo
 }
 
-func VerifyRequestInfo(t *testing.T, ri kyogetsu.RequestInfo, r requestInfo) {
+func verifyRequestInfo(t *testing.T, ri RequestInfo, r requestInfo) {
   if ri.Method != r.Method {
     t.Errorf("Method doesn't match. Expected: %s Got: %s", r.Method, ri.Method)
   }
@@ -42,14 +41,14 @@ func VerifyRequestInfo(t *testing.T, ri kyogetsu.RequestInfo, r requestInfo) {
   }
 }
 
-func VerifyMessage(t *testing.T, msg *kyogetsu.Message, m message) {
+func verifyMessage(t *testing.T, msg *Message, m message) {
   if msg.ProductionReponse != m.Pr {
     t.Errorf("ProductionReponse doesn't match. Expected: %s Got: %s", m.Pr, msg.ProductionReponse)
   }
   if msg.StagingReponse != m.Sr {
     t.Errorf("StagingReponse doesn't match. Expected: %s Got: %s", m.Sr, msg.StagingReponse)
   }
-  VerifyRequestInfo(t, msg.Request, m.r)
+  verifyRequestInfo(t, msg.Request, m.r)
 }
 
 func TestNewRequestInfo(t *testing.T) {
@@ -60,8 +59,8 @@ func TestNewRequestInfo(t *testing.T) {
   for _, test := range tests {
     b := strings.NewReader(test.Body)
     r, _ := http.NewRequest(test.Method, test.URL, b)
-    ri := kyogetsu.NewRequestInfo(r)
-    VerifyRequestInfo(t, ri, test)
+    ri := NewRequestInfo(r)
+    verifyRequestInfo(t, ri, test)
   }
 }
 
@@ -71,9 +70,9 @@ func TestNewRequestInfoWithoutBody(t *testing.T) {
       {"GET", "test.com", ""},
     }
   for _, test := range tests {
-    r, _ := http.NewRequest(test.Method, test.URL, FailReader{})
-    ri := kyogetsu.NewRequestInfo(r)
-    VerifyRequestInfo(t, ri, test)
+    r, _ := http.NewRequest(test.Method, test.URL, failReader{})
+    ri := NewRequestInfo(r)
+    verifyRequestInfo(t, ri, test)
   }
 }
 
@@ -85,8 +84,8 @@ func TestNewMessage(t *testing.T) {
   for _, test := range tests {
     b := strings.NewReader(test.r.Body)
     r, _ := http.NewRequest(test.r.Method, test.r.URL, b)
-    m := kyogetsu.NewMessage(test.Pr, test.Sr, r)
+    m := NewMessage(test.Pr, test.Sr, r)
 
-    VerifyMessage(t, m, test)
+    verifyMessage(t, m, test)
   }
 }

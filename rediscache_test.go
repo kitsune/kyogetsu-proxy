@@ -1,10 +1,9 @@
 //Copyright Dylan Enloe 2017
 
-package kyogetsu_test
+package kyogetsu
 
 import (
   "github.com/mediocregopher/radix.v2/redis"
-  "kyogetsu"
   "testing"
   "net/http"
   )
@@ -29,8 +28,8 @@ func getRedisConn() *redis.Client {
 
 //Get a RedisCache, provides a single place to change
 //the host address
-func getRedisCache() *kyogetsu.RedisCache {
-  return kyogetsu.NewRedisCache("127.0.0.1:6379")
+func getRedisCache() *RedisCache {
+  return NewRedisCache("127.0.0.1:6379")
 }
 
 //Close and clean up the redis connection
