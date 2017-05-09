@@ -8,7 +8,7 @@ import (
 )
 
 type MessageSender interface {
-  SendMessage(*Message)
+  SendMessage(*Message) error
 }
 
 type RequestInfo struct {

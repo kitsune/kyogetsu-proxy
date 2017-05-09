@@ -1,3 +1,5 @@
+//Copyright Dylan Enloe 2017
+
 package kyogetsu
 
 import (
@@ -6,23 +8,26 @@ import (
   "log"
 )
 
+//NatsSender is an implementation of the MessageSender
+//interface using go-nats
 type NatsSender struct {
   URLStr string
   PubSubj string
 }
 
-func (n NatsSender) SendMessage(m *Message) {
+//SendMessage publishes the message to the go-nats server
+func (n NatsSender) SendMessage(m *Message) error{
   nc, err := nats.Connect(n.URLStr)
   if err != nil {
     log.Println(err)
-    return
+    return err
   }
   defer nc.Close()
   b, err := json.Marshal(m)
   if err != nil {
     log.Println("Failed to encode the following message")
     log.Println(err)
-    return
+    return err
   }
   
   nc.Publish(n.PubSubj, b)
@@ -31,9 +36,14 @@ func (n NatsSender) SendMessage(m *Message) {
   if err := nc.LastError(); err != nil {
     log.Println("Failed to send the message: %s", b)
     log.Println(err)
+    return err
   }
+  return nil
 }
 
+
+//NewNatsSender creates a new NatsSender for the publishing
+//subject queue provided
 func NewNatsSender(url string, subject string) NatsSender {
   return NatsSender{URLStr: url, PubSubj: subject}
 }
