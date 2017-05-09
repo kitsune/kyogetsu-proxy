@@ -6,23 +6,15 @@ import (
   "encoding/json"
   "github.com/nats-io/go-nats"
   "github.com/nats-io/gnatsd/test"
-  "strings"
   "sync/atomic"
   "testing"
   "time"
-  "net/http"
   )
-
-func makeTestMessage(m message) *Message{
-  b := strings.NewReader(m.r.Body)
-  r, _ := http.NewRequest(m.r.Method, m.r.URL, b)
-  return NewMessage(m.Pr, m.Sr, r)
-}
 
 func TestSendMessageBadUrl(t *testing.T) {
   ns := NewNatsSender("bad url", "subject")
-  m := makeTestMessage(message{"prod", "test", requestInfo{"POST", "bad url", "body"}})
-  err := ns.SendMessage(m)
+  m := Message{RequestInfo{"POST", "body", "bad url"}, "prod", "test"}
+  err := ns.SendMessage(&m)
   if err == nil {
     t.Error("The NatsSender should return an Error for a bad URL but didn't")
   }
@@ -37,17 +29,17 @@ func TestSendMessage(t *testing.T) {
 
   var tests = []struct {
       Subject string
-      Msg message
+      Msg Message
     }{
-      {"test", message{
+      {"test", Message{
+        RequestInfo{"POST", "testing", "example.com"},
         "prod",
         "test",
-        requestInfo{"POST", "example.com", "testing"},
       }},
-      {"BOB", message{
+      {"BOB", Message{
+        RequestInfo{"GET", "what are you doing?", "testing.now"},
         "serving people",
         "testing code",
-        requestInfo{"GET", "testing.now", "what are you doing?"},
       }},
     }
   for _, test := range tests {
@@ -68,8 +60,7 @@ func TestSendMessage(t *testing.T) {
     defer s.Unsubscribe()
 
     ns := NewNatsSender("nats://localhost:4222", test.Subject)
-    m := makeTestMessage(test.Msg)
-    ns.SendMessage(m)
+    ns.SendMessage(&test.Msg)
 
     nc.Flush()
     time.Sleep(100 * time.Millisecond)

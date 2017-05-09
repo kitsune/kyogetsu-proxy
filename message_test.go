@@ -17,19 +17,7 @@ func (r failReader) Read(b []byte) (n int, err error) {
   return 0, errors.New("Read Error")
 }
 
-type requestInfo struct {
-  Method string
-  URL string
-  Body string
-}
-
-type message struct {
-  Pr string
-  Sr string
-  r requestInfo
-}
-
-func verifyRequestInfo(t *testing.T, ri RequestInfo, r requestInfo) {
+func verifyRequestInfo(t *testing.T, ri RequestInfo, r RequestInfo) {
   if ri.Method != r.Method {
     t.Errorf("Method doesn't match. Expected: %s Got: %s", r.Method, ri.Method)
   }
@@ -41,20 +29,20 @@ func verifyRequestInfo(t *testing.T, ri RequestInfo, r requestInfo) {
   }
 }
 
-func verifyMessage(t *testing.T, msg *Message, m message) {
-  if msg.ProductionReponse != m.Pr {
-    t.Errorf("ProductionReponse doesn't match. Expected: %s Got: %s", m.Pr, msg.ProductionReponse)
+func verifyMessage(t *testing.T, msg *Message, m Message) {
+  if msg.ProductionReponse != m.ProductionReponse {
+    t.Errorf("ProductionReponse doesn't match. Expected: %s Got: %s", m.ProductionReponse, msg.ProductionReponse)
   }
-  if msg.StagingReponse != m.Sr {
-    t.Errorf("StagingReponse doesn't match. Expected: %s Got: %s", m.Sr, msg.StagingReponse)
+  if msg.StagingReponse != m.StagingReponse {
+    t.Errorf("StagingReponse doesn't match. Expected: %s Got: %s", m.StagingReponse, msg.StagingReponse)
   }
-  verifyRequestInfo(t, msg.Request, m.r)
+  verifyRequestInfo(t, msg.Request, m.Request)
 }
 
 func TestNewRequestInfo(t *testing.T) {
-  var tests = []requestInfo {
-      {"POST", "example.com", "This is a test"},
-      {"GET", "test.com", "this is also a test"},
+  var tests = []RequestInfo {
+      {"POST", "This is a test", "example.com"},
+      {"GET", "this is also a test", "test.com"},
     }
   for _, test := range tests {
     b := strings.NewReader(test.Body)
@@ -65,9 +53,9 @@ func TestNewRequestInfo(t *testing.T) {
 }
 
 func TestNewRequestInfoWithoutBody(t *testing.T) {
-  var tests = []requestInfo {
-      {"POST", "example.com", ""},
-      {"GET", "test.com", ""},
+  var tests = []RequestInfo {
+      {"POST", "", "example.com"},
+      {"GET", "", "test.com"},
     }
   for _, test := range tests {
     r, _ := http.NewRequest(test.Method, test.URL, failReader{})
@@ -77,14 +65,14 @@ func TestNewRequestInfoWithoutBody(t *testing.T) {
 }
 
 func TestNewMessage(t *testing.T) {
-  var tests = []message {
-      {"Prod", "Test", requestInfo{"POST", "example.com", "This is a test"}},
-      {"", "", requestInfo{"GET", "test.com", "this is also a test"}},
+  var tests = []Message {
+      {RequestInfo{"POST", "This is a test", "example.com"}, "Prod", "Test"},
+      {RequestInfo{"GET", "this is also a test" , "test.com"}, "", ""},
     }
   for _, test := range tests {
-    b := strings.NewReader(test.r.Body)
-    r, _ := http.NewRequest(test.r.Method, test.r.URL, b)
-    m := NewMessage(test.Pr, test.Sr, r)
+    b := strings.NewReader(test.Request.Body)
+    r, _ := http.NewRequest(test.Request.Method, test.Request.URL, b)
+    m := NewMessage(test.ProductionReponse, test.StagingReponse, r)
 
     verifyMessage(t, m, test)
   }
