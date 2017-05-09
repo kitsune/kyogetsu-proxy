@@ -3,12 +3,11 @@
 package kyogetsu
 
 import (
-  "fmt"
+  "errors"
   "net/http"
   "net/http/httputil"
   "net/http/httptest"
   "net/url"
-  "errors"
 )
 
 //ProxyHandler interface provides access to a
@@ -40,7 +39,7 @@ func (p SingleProxyHandler) Staging(*http.Request) *httputil.ReverseProxy {
 //NewSingleProxyHander returns a new SingleProxyHandler by parseing
 //the two URL strings given by p and s, storing them in Production
 //and Staging respectively
-func NewSingleProxyHander(p string, s string) SingleProxyHandler {
+func NewSingleProxyHandler(p string, s string) SingleProxyHandler {
   pURL, _ := url.Parse(p)
   pProxy := httputil.NewSingleHostReverseProxy(pURL)
   sURL, _ := url.Parse(s)
@@ -59,8 +58,6 @@ func CookieIdFunction(s string) func([]*http.Cookie) (string, error) {
   return func(c []*http.Cookie) (string, error) {
     for i := range c {
       if c[i].Name == s {
-        fmt.Println("Found value:")
-        fmt.Println(c[i].Value)
         return c[i].Value, nil
       }
     }
@@ -78,7 +75,7 @@ type KyogetsuProxy struct {
   idFunc IdFunction
 }
 
-//NewKyogetsuProxy creates a new KyogetsuProxy with the 
+//NewKyogetsuProxy creates a new KyogetsuProxy with the
 //provided configuration
 func NewKyogetsuProxy(ph ProxyHandler, ms MessageSender, c CookieCache, idf IdFunction) KyogetsuProxy {
   return KyogetsuProxy{ph: ph, ms: ms, ccache: c, idFunc: idf}
@@ -89,7 +86,7 @@ func NewKyogetsuProxy(ph ProxyHandler, ms MessageSender, c CookieCache, idf IdFu
 func (p KyogetsuProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   nr, _ := http.NewRequest(r.Method, r.URL.String(), r.Body)
   nr.Header = r.Header
-  
+
   pw := httptest.NewRecorder()
   p.ph.Production(r).ServeHTTP(pw, r)
   for k, v := range pw.HeaderMap {
@@ -113,8 +110,6 @@ func (p KyogetsuProxy) loadCookies(id string, r *http.Request) error {
   for _, v := range sc {
     r.AddCookie(v)
   }
-
-  fmt.Printf("Request Header: %s", r.Header)
   return nil
 }
 
@@ -133,7 +128,7 @@ func (p KyogetsuProxy) saveCookies(id string, w http.ResponseWriter) error {
 }
 
 //HandleStaging prepares and send the request to the staging proxy
-//updates the cookies if needed and sends the results to the 
+//updates the cookies if needed and sends the results to the
 //message sender
 func (p KyogetsuProxy) HandleStaging(r *http.Request, pw *httptest.ResponseRecorder) {
   id, id_err := p.idFunc(r.Cookies())
@@ -157,8 +152,6 @@ func (p KyogetsuProxy) HandleStaging(r *http.Request, pw *httptest.ResponseRecor
 
   p.saveCookies(id, sw)
 
-  fmt.Println("Request Cookies")
-  fmt.Println(r.Cookies())
   m := NewMessage(pw.Body.String(), sw.Body.String(), r)
   p.ms.SendMessage(m)
 }
