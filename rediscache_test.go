@@ -27,6 +27,12 @@ func getRedisConn() *redis.Client {
   return r
 }
 
+//Get a RedisCache, provides a single place to change
+//the host address
+func getRedisCache() *kyogetsu.RedisCache {
+  return kyogetsu.NewRedisCache("127.0.0.1:6379")
+}
+
 //Close and clean up the redis connection
 func closeRedisConn(r *redis.Client) {
   e := r.Cmd("FLUSHALL").Err
@@ -39,11 +45,11 @@ func closeRedisConn(r *redis.Client) {
 //Get the redis path for a given session if
 func getIdPath(id string) string{
   return "kyogetsu." + id
-} 
+}
 
 func TestSetCookie(t *testing.T) {
   var tests = []struct {
-      Id string 
+      Id string
       cd cookieData
     }{
       {"bill", cookieData{"type", "test"}},
@@ -55,7 +61,7 @@ func TestSetCookie(t *testing.T) {
     defer closeRedisConn(r)
     c := http.Cookie{Name: test.cd.Name, Value: test.cd.Value}
 
-    rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+    rc := getRedisCache()
     err := rc.SetCookie(test.Id, &c)
     if err != nil {
       t.Errorf("Got Error: %s", err)
@@ -104,7 +110,7 @@ func TestSetCookies(t *testing.T) {
       c = append(c, &http.Cookie{Name: v.Name, Value: v.Value})
     }
 
-    rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+    rc := getRedisCache()
     err := rc.SetCookies(test.Id, c)
     if err != nil {
       t.Errorf("Got Error: %s", err)
@@ -124,9 +130,9 @@ func TestSetCookies(t *testing.T) {
 }
 
 func TestSetCookiesHandlesEmptyMaps(t *testing.T) {
-  rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+  rc := getRedisCache()
   c := make([]*http.Cookie, 0, 0)
-  err := rc.SetCookies("test", c) 
+  err := rc.SetCookies("test", c)
   if err != nil {
     t.Errorf("Got Error: %s", err)
   }
@@ -134,7 +140,7 @@ func TestSetCookiesHandlesEmptyMaps(t *testing.T) {
 
 func TestGetCookie(t *testing.T) {
   var tests = []struct {
-      Id string 
+      Id string
       cd cookieData
     }{
       {"bill", cookieData{"type", "test"}},
@@ -151,12 +157,12 @@ func TestGetCookie(t *testing.T) {
       return
     }
 
-    rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+    rc := getRedisCache()
     var c *http.Cookie
     c, err = rc.GetCookie(test.Id, test.cd.Name)
     if err != nil {
       t.Errorf("Got Error: %s", err)
-      return 
+      return
     }
 
     if c.Name != test.cd.Name {
@@ -202,7 +208,7 @@ func TestGetCookies(t *testing.T) {
       return
     }
 
-    rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+    rc := getRedisCache()
     cookies, e := rc.GetCookies(test.Id)
     if e != nil {
       t.Errorf("Got Error: %s", err)
@@ -220,7 +226,7 @@ func TestGetCookies(t *testing.T) {
 func TestChangeCookiesId(t *testing.T) {
   var tests = []struct {
     Id1 string
-    Id2 string 
+    Id2 string
     cd cookieData
   }{
     {"bill", "bob", cookieData{"type", "test"}},
@@ -237,7 +243,7 @@ func TestChangeCookiesId(t *testing.T) {
       return
     }
 
-    rc := kyogetsu.NewRedisCache("127.0.0.1:6379")
+    rc := getRedisCache()
     err = rc.ChangeCookiesId(test.Id1, test.Id2)
     if err != nil {
       t.Errorf("Got Error: %s", err)
@@ -247,7 +253,7 @@ func TestChangeCookiesId(t *testing.T) {
     m, e := r.Cmd("HGETALL", getIdPath(test.Id2)).Map()
     if e != nil {
       t.Errorf("Got Error: %s", e)
-      return 
+      return
     }
 
     if len(m) < 1 {
