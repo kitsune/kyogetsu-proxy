@@ -86,14 +86,13 @@ func NewKyogetsuProxy(ph ProxyHandler, ms MessageSender, c CookieCache, idf IdFu
 func (p KyogetsuProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   nr, _ := http.NewRequest(r.Method, r.URL.String(), r.Body)
   nr.Header = r.Header
-
   pw := httptest.NewRecorder()
   p.ph.Production(r).ServeHTTP(pw, r)
   for k, v := range pw.HeaderMap {
       w.Header()[k] = v
   }
   w.WriteHeader(pw.Code)
-  pw.Body.WriteTo(w)
+  w.Write(pw.Body.Bytes())
   go p.HandleStaging(nr, pw)
 }
 
@@ -131,13 +130,15 @@ func (p KyogetsuProxy) saveCookies(id string, w http.ResponseWriter) error {
 //updates the cookies if needed and sends the results to the
 //message sender
 func (p KyogetsuProxy) HandleStaging(r *http.Request, pw *httptest.ResponseRecorder) {
+  sr, _ := http.NewRequest(r.Method, r.URL.String(), r.Body)
+  sr.Header = r.Header
   id, id_err := p.idFunc(r.Cookies())
   if id_err == nil {
-    p.loadCookies(id, r)
+    p.loadCookies(id, sr)
   }
 
   sw := httptest.NewRecorder()
-  p.ph.Staging(r).ServeHTTP(sw, r)
+  p.ph.Staging(r).ServeHTTP(sw, sr)
 
   //update id if a new id is given
   resp := http.Response{Header: pw.Header()}
@@ -152,6 +153,6 @@ func (p KyogetsuProxy) HandleStaging(r *http.Request, pw *httptest.ResponseRecor
 
   p.saveCookies(id, sw)
 
-  m := NewMessage(pw.Body.String(), sw.Body.String(), r)
+  m := NewMessage(pw, sw, r, sr)
   p.ms.SendMessage(m)
 }

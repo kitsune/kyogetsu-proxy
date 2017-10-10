@@ -6,6 +6,7 @@ import (
   "encoding/json"
   "github.com/nats-io/go-nats"
   "github.com/nats-io/gnatsd/test"
+  "net/http"
   "sync/atomic"
   "testing"
   "time"
@@ -13,7 +14,12 @@ import (
 
 func TestSendMessageBadUrl(t *testing.T) {
   ns := NewNatsSender("bad url", "subject")
-  m := Message{RequestInfo{"POST", "body", "bad url"}, "prod", "test"}
+  m := Message{
+    RequestInfo{"POST", "bad url", http.Header{"Cookie": {"A"}}, "body"},
+    RequestInfo{"POST", "bad url", http.Header{"Cookie": {"A"}}, "body"},
+    ResponseInfo{200, http.Header{"Cookie": {"A"}}, "prod"},
+    ResponseInfo{200, http.Header{"Cookie": {"A"}}, "test"},
+  }
   err := ns.SendMessage(&m)
   if err == nil {
     t.Error("The NatsSender should return an Error for a bad URL but didn't")
@@ -32,14 +38,16 @@ func TestSendMessage(t *testing.T) {
       Msg Message
     }{
       {"test", Message{
-        RequestInfo{"POST", "testing", "example.com"},
-        "prod",
-        "test",
+        RequestInfo{"POST", "example.com", http.Header{"Header": {"Yes"}}, "testing"},
+        RequestInfo{"POST", "example.com", http.Header{"Header": {"No"}}, "testing"},
+        ResponseInfo{200, http.Header{}, "prod"},
+        ResponseInfo{200, http.Header{}, "test"},
       }},
       {"BOB", Message{
-        RequestInfo{"GET", "what are you doing?", "testing.now"},
-        "serving people",
-        "testing code",
+        RequestInfo{"GET", "testing.now", http.Header{}, "what are you doing?"},
+        RequestInfo{"GET", "testing.now", http.Header{}, "what are you doing?"},
+        ResponseInfo{200, http.Header{"Simple": {"B"}}, "serving people"},
+        ResponseInfo{200, http.Header{"Complex": {"B * 2i"}}, "testing code"},
       }},
     }
   for _, test := range tests {

@@ -281,7 +281,10 @@ func TestHandleStaging(t *testing.T) {
       nr.AddCookie(c)
     }
 
-    ms := dummySender{Message{NewRequestInfo(nr), "Prod", "Staging"}, t}
+    ms := dummySender{Message{NewRequestInfo(nr),
+                              NewRequestInfo(nr),
+                              ResponseInfo{200, http.Header{}, "Prod"},
+                              ResponseInfo{200, http.Header{}, "Staging"}}, t}
     rc := getRedisCache()
     k := newTestKyogetsuProxy(ps, ss, ms, rc)
 
@@ -302,7 +305,10 @@ func TestServeHTTP(t *testing.T) {
   r, _ := http.NewRequest("Post", ps.URL + "/", strings.NewReader(""))
   nr, _ := http.NewRequest(r.Method, ss.URL + "/", r.Body)
 
-  ms := dummySender{Message{NewRequestInfo(nr), "Prod", "Staging"}, t}
+  ms := dummySender{Message{NewRequestInfo(nr),
+                            NewRequestInfo(nr),
+                            ResponseInfo{200, http.Header{}, "Prod"},
+                            ResponseInfo{200, http.Header{}, "Staging"}}, t}
   rc := getRedisCache()
   k := newTestKyogetsuProxy(ps, ss, ms, rc)
 
