@@ -1,4 +1,7 @@
-//Copyright Dylan Enloe 2017
+/* Copyright Dylan Enloe 2017
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package kyogetsu
 
@@ -29,7 +32,7 @@ func (n NatsSender) SendMessage(m *Message) error{
     log.Println(err)
     return err
   }
-  
+
   nc.Publish(n.PubSubj, b)
   nc.Flush()
 

@@ -1,4 +1,7 @@
-//Copyright Dylan Enloe 2017
+/* Copyright Dylan Enloe 2017
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package kyogetsu
 
@@ -29,7 +32,7 @@ func (r RedisCache) SetCookies(id string, c []*http.Cookie) error {
   if len(c) == 0 {
     return nil
   }
-  
+
   k := r.namespacedId(id)
   m := map[string]string{}
   for _, v := range c {
