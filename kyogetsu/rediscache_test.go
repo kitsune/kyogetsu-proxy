@@ -3,7 +3,7 @@
 package kyogetsu
 
 import (
-  "github.com/mediocregopher/radix.v2/redis"
+  "github.com/mediocregopher/radix.v2/pool"
   "testing"
   "net/http"
   )
@@ -14,16 +14,12 @@ type cookieData struct {
 }
 
 //get a redis connection
-func getRedisConn() *redis.Client {
-  r, e := redis.Dial("tcp", "localhost:6379")
+func getRedisConn(rc *RedisCache) *pool.Pool {
+  e := rc.pool.Cmd("FLUSHALL").Err
   if e != nil {
     panic(e)
   }
-  e = r.Cmd("FLUSHALL").Err
-  if e != nil {
-    panic(e)
-  }
-  return r
+  return rc.pool
 }
 
 //Get a RedisCache, provides a single place to change
@@ -33,12 +29,11 @@ func getRedisCache() *RedisCache {
 }
 
 //Close and clean up the redis connection
-func closeRedisConn(r *redis.Client) {
+func closeRedisConn(r *pool.Pool) {
   e := r.Cmd("FLUSHALL").Err
   if e != nil {
     panic(e)
   }
-  r.Close()
 }
 
 //Get the redis path for a given session if
@@ -56,11 +51,11 @@ func TestSetCookie(t *testing.T) {
       {"", cookieData{"name", "sessionless"}},
     }
   for _, test := range tests {
-    r := getRedisConn()
+    rc := getRedisCache()
+    r := getRedisConn(rc)
     defer closeRedisConn(r)
     c := http.Cookie{Name: test.cd.Name, Value: test.cd.Value}
 
-    rc := getRedisCache()
     err := rc.SetCookie(test.Id, &c)
     if err != nil {
       t.Errorf("Got Error: %s", err)
@@ -101,7 +96,8 @@ func TestSetCookies(t *testing.T) {
     }},
   }
   for _, test := range tests {
-    r := getRedisConn()
+    rc := getRedisCache()
+    r := getRedisConn(rc)
     defer closeRedisConn(r)
 
     c := make([]*http.Cookie, 0, len(test.cd))
@@ -109,7 +105,6 @@ func TestSetCookies(t *testing.T) {
       c = append(c, &http.Cookie{Name: v.Name, Value: v.Value})
     }
 
-    rc := getRedisCache()
     err := rc.SetCookies(test.Id, c)
     if err != nil {
       t.Errorf("Got Error: %s", err)
@@ -147,7 +142,8 @@ func TestGetCookie(t *testing.T) {
       {"", cookieData{"name", "sessionless"}},
     }
   for _, test := range tests {
-    r := getRedisConn()
+    rc := getRedisCache()
+    r := getRedisConn(rc)
     defer closeRedisConn(r)
 
     err := r.Cmd("HSET", getIdPath(test.Id), test.cd.Name, test.cd.Value).Err
@@ -156,7 +152,6 @@ func TestGetCookie(t *testing.T) {
       return
     }
 
-    rc := getRedisCache()
     var c *http.Cookie
     c, err = rc.GetCookie(test.Id, test.cd.Name)
     if err != nil {
@@ -194,7 +189,8 @@ func TestGetCookies(t *testing.T) {
     }},
   }
   for _, test := range tests {
-    r := getRedisConn()
+    rc := getRedisCache()
+    r := getRedisConn(rc)
     defer closeRedisConn(r)
 
     m := map[string]string{}
@@ -207,7 +203,6 @@ func TestGetCookies(t *testing.T) {
       return
     }
 
-    rc := getRedisCache()
     cookies, e := rc.GetCookies(test.Id)
     if e != nil {
       t.Errorf("Got Error: %s", err)
@@ -233,7 +228,8 @@ func TestChangeCookiesId(t *testing.T) {
     {"", "something", cookieData{"name", "sessionless"}},
   }
   for _, test := range tests {
-    r := getRedisConn()
+    rc := getRedisCache()
+    r := getRedisConn(rc)
     defer closeRedisConn(r)
 
     err := r.Cmd("HSET", getIdPath(test.Id1), test.cd.Name, test.cd.Value).Err
@@ -242,7 +238,6 @@ func TestChangeCookiesId(t *testing.T) {
       return
     }
 
-    rc := getRedisCache()
     err = rc.ChangeCookiesId(test.Id1, test.Id2)
     if err != nil {
       t.Errorf("Got Error: %s", err)
