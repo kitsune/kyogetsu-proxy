@@ -134,7 +134,9 @@ func (p KyogetsuProxy) saveCookies(id string, w http.ResponseWriter) error {
 //message sender
 func (p KyogetsuProxy) HandleStaging(r *http.Request, pw *httptest.ResponseRecorder) {
   sr, _ := http.NewRequest(r.Method, r.URL.String(), r.Body)
-  sr.Header = r.Header
+  for k, v := range r.Header {
+      sr.Header[k] = v
+  }
   id, id_err := p.idFunc(r.Cookies())
   if id_err == nil {
     p.loadCookies(id, sr)
